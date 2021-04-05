@@ -8,6 +8,8 @@ https://docs.djangoproject.com/en/3.0/topics/settings/
 
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
+
+Deployment Check list ---> https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 """
 
 import os
