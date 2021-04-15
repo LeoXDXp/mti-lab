@@ -19,6 +19,7 @@ user_dict = {}
 if len(sys.argv) > 1:
     try:
         only_pass = bool(sys.argv[1])
+        print(only_pass)
     except Exception as e:
         print(f"Cant interpret param as True or False: {e}")
 
@@ -42,7 +43,7 @@ for row in df[name_col]:
     # Assign a random password, with only 10 digits
     pword = uuid.uuid4().hex[:10]
     mod_pass = Popen([f"echo {pword} | echo {pword} | passwd {name}"], stdout=PIPE,stderr=PIPE, shell=True)
-    out, err = create_user.communicate()
+    out, err = mod_pass.communicate()
     # Return code 0 is success, else ...
     if mod_pass.returncode:
         print(f"Cant assign password to user {name}. Out: {out}, err:{err}")
