@@ -3,7 +3,7 @@
 Read user list from csv and create users in format name.lastname
 '''
 
-import uuid
+import sys, uuid
 from subprocess import Popen, PIPE
 import pandas as pd
 
@@ -15,6 +15,12 @@ name_col = "E-MAIL INSTITUCIONAL"
 
 # Output data
 user_dict = {}
+# If a param is passed
+if len(sys.argv) > 1:
+    try:
+        only_pass = bool(sys.argv[1])
+    except Exception as e:
+        print(f"Cant interpret param as True or False: {e}")
 
 for row in df[name_col]:
     # Use email name without domain
@@ -25,12 +31,13 @@ for row in df[name_col]:
         continue
 
     # Call useradd
-    create_user = Popen([f"useradd -U {name}"], stdout=PIPE,stderr=PIPE, shell=True)
-    out, err = create_user.communicate()
-    # Return code 0 is success, else ...
-    if create_user.returncode:
-        print(f"Cant create user {name}. Out: {out}, err:{err}")
-        continue
+    if only_pass == False:
+        create_user = Popen([f"useradd -U {name}"], stdout=PIPE,stderr=PIPE, shell=True)
+        out, err = create_user.communicate()
+        # Return code 0 is success, else ...
+        if create_user.returncode:
+            print(f"Cant create user {name}. Out: {out}, err:{err}")
+            continue
 
     # Assign a random password, with only 10 digits
     pword = uuid.uuid4().hex[:10]
@@ -44,5 +51,6 @@ for row in df[name_col]:
     user_dict[name] = pword
     print(f"New user {name} OK")
 # Finally, save user dict as csv through pandas
+print(user_dict)
 df_out = pd.DataFrame.from_dict(user_dict)
 df_out.to_csv("alumnos2020.csv")
