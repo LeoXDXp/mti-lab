@@ -55,5 +55,5 @@ for row in df[name_col]:
         print(f"New user {name} OK")
 # Finally, save user dict as csv through pandas
 print(user_dict)
-df_out = pd.DataFrame.from_dict(user_dict)
+df_out = pd.DataFrame.from_dict(user_dict, orient="index")
 df_out.to_csv("alumnos2020.csv")
