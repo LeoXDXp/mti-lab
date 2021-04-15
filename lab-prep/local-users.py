@@ -16,7 +16,7 @@ name_col = "E-MAIL INSTITUCIONAL"
 # Output data
 user_dict = {}
 
-for row in df[name_col].itertuples():
+for row in df[name_col]:
     # Use email name without domain
     try:
         name = row.split("@")[0]
