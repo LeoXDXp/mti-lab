@@ -42,7 +42,7 @@ for row in df[name_col]:
 
     # Store data in user dict
     user_dict[name] = pword
-
+    print(f"New user {name} OK")
 # Finally, save user dict as csv through pandas
 df_out = pd.DataFrame.from_dict(user_dict)
 df_out.to_csv("alumnos2020.csv")
