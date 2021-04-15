@@ -41,16 +41,18 @@ for row in df[name_col]:
             continue
 
     # Assign a random password, with only 10 digits
-    pword = uuid.uuid4().hex[:10]
-    mod_pass = Popen([f"echo {pword} | echo {pword} | passwd {name}"], stdout=PIPE,stderr=PIPE, shell=True)
+    pword = uuid.uuid4().hex[:8]
+    pword = "_" + pword + "!"
+    mod_pass = Popen([f"echo {pword} | echo {pword} | passwd --stdin {name}"], stdout=PIPE,stderr=PIPE, shell=True)
     out, err = mod_pass.communicate()
     # Return code 0 is success, else ...
     if mod_pass.returncode:
         print(f"Cant assign password to user {name}. Out: {out}, err:{err}")
-
-    # Store data in user dict
-    user_dict[name] = pword
-    print(f"New user {name} OK")
+        
+    else:
+        # Store data in user dict
+        user_dict[name] = pword
+        print(f"New user {name} OK")
 # Finally, save user dict as csv through pandas
 print(user_dict)
 df_out = pd.DataFrame.from_dict(user_dict)
