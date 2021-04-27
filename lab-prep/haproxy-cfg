@@ -1,0 +1,26 @@
+frontend main
+    bind *:80
+    #acl url_static       path_beg       -i /static /images /javascript /stylesheets
+    #acl url_static       path_end       -i .jpg .gif .png .css .js
+    acl rancher_acl hdr(host) -i rancher-mti.sipat.cl
+    acl nginx_acl hdr(host) -i nginx-mti.sipat.cl
+    use_backend rancher if rancher_acl
+    use_backend nginx if nginx_acl
+
+    #use_backend static          if url_static
+    default_backend             jupynotebook
+
+
+backend nginx
+    balance roundrobin
+    server localh 127.0.0.1:8008 check
+#---------------------------------------------------------------------
+# round robin balancing between the various backends
+#---------------------------------------------------------------------
+backend rancher
+    balance roundrobin
+    server localh 127.0.0.1:8080 check
+
+backend jupynotebook
+    balance     source
+
