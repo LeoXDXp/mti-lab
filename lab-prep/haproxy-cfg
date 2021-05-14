@@ -10,6 +10,14 @@ frontend main
     #use_backend static          if url_static
     default_backend             jupynotebook
 
+frontend cockpit
+    bind *:9090
+    mode tcp
+    option tcplog
+    #acl cockpit_main_acl hdr(host) -i cockpit-mti.sipat.cl
+
+    #use_backend cockpit_main if cockpit_main_acl
+    default_backend             cockpit
 
 backend nginx
     balance roundrobin
@@ -24,3 +32,6 @@ backend rancher
 backend jupynotebook
     balance     source
 
+backend cockpit
+    balance source
+    mode tcp
