@@ -1,28 +1,40 @@
-FROM fedora AS base
-RUN dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-32-x86_64/pgdg-fedora-repo-latest.noarch.rpm && \
-	dnf install -y git postgresql11-server libpq-devel redhat-rpm-config bison flex && \
-	dnf groupinstall -y "Development Tools"
-RUN git clone https://github.com/apache/incubator-age.git && cd incubator-age && mkdir incubator-age && make
+# Compile mod tile with its products from the git repo
+FROM fedora:33 AS base
+RUN dnf install -y git redhat-rpm-config iniparser-devel cairo-devel autoconf automake boost-devel freetype-devel gcc-c++ httpd httpd-devel libicu-devel libtool make mapnik-devel proj-devel unzip wget
 
-FROM fedora
-RUN dnf update -y && dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-32-x86_64/pgdg-fedora-repo-latest.noarch.rpm && \
-	dnf install -y postgresql11-server postgis postgis-utils bison flex
-COPY --from=base /
+RUN git clone https://github.com/openstreetmap/mod_tile.git && cd mod_tile && \
+	./autogen.sh && ./configure && make -j4 && make install && make install-mod_tile
+RUN mkdir -p leaflet && cd leaflet && wget http://cdn.leafletjs.com/leaflet/v1.7.1/leaflet.zip && unzip leaflet.zip
 
-# Run initdb only if /var/lib/pgsql/data/ is empty
-RUN if [ ! -d "/var/lib/pgsql/data/" ]; then /usr/pgsql-11/bin/postgresql-11-setup initdb fi
+# Deploy renderd and apache
+FROM fedora:33
+RUN dnf install -y httpd mapnik python3-mapnik
+# renderd binaries
+COPY --from=base /mod_tile/render* /usr/local/bin/
+# mod_tile Apache module
+COPY --from=base /usr/lib64/httpd/modules/mod_tile.so /usr/lib64/httpd/modules/
+# Renderd conf
+COPY --from=base /mod_tile/examples/config/renderd/renderd.conf.dist /etc/renderd.conf
+# Mod tile apache conf
+COPY --from=base /mod_tile/examples/config/apache2/renderd.conf.dist /etc/httpd/conf.d/mod_tile.conf
+#Mapnik style
+#COPY --from=base /mod_tile/examples/example-map/mapnik.xml /var/www/html/
+# Base page, needs editing
+COPY --from=base /mod_tile/examples/example-map/index.html /var/www/html/
+# Leaflet css, js and images
+COPY --from=base /leaflet/leaflet.css /var/www/html/
+COPY --from=base /leaflet/* /var/www/html/
 
-# Enable the db service
-RUN systemcl enable postgresql-11
+# Update configs
+RUN sed -i 's/lib\/mapnik\/3.0/lib64\/mapnik/g' /etc/renderd.conf && \
+	sed -i 's/example-map\/mapnik.xml/html\/mapnik.xml/g' /etc/renderd.conf && \
+	chmod 755 /usr/lib64/httpd/modules/mod_tile.so && \
+	curl https://raw.githubusercontent.com/LeoXDXp/mti-lab/main/pgsql/osm-vhost.conf -o /etc/httpd/conf.d/osm-vhost.conf && \
+	curl https://raw.githubusercontent.com/LeoXDXp/mti-lab/main/pgsql/mapnik.xml -o /var/www/html/mapnik.xml && \
+	sed -i 's/nothereobviously//g' /var/www/html/mapnik.xml && \
+	sed -i 's/awsremotehost//g' /var/www/html/mapnik.xml
+RUN 
+#RUN useradd -U renderd
+#USER renderd
 
-# Expose the DB port
-EXPOSE 5432
-
-# If using SELinux, this boolean needs to be activated
-# setsebool -P container_manage_cgroup 1
-
-# If not using k8s, might want to manually declare the volumes 
-#VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-
-USER postgres
-#CMD ["/usr/pgsql-11/bin/postgres", "-D", "/var/lib/pgsql/11/main", "-c", "config_file=/etc/postgresql/9.3/main/postgresql.conf"]
+CMD (httpd &) && renderd -f
