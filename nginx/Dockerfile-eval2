@@ -1,0 +1,6 @@
+FROM fedora:33 AS base
+ARG MSG=cambiame
+RUN echo "Evaluacion 2: $MSG" >> /hello.html
+
+FROM nginx
+COPY --from=base /hello.html /usr/share/nginx/html/
